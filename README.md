@@ -11,6 +11,8 @@ FOR WINDOWS-
 python -m venv .venv 
 ```
 
+*Interesting note: as I was running through the assignment, I generally would run into issues with getting my requirements file to install as expected. A workaround that I used was running **3.12** instead of python3 when adding a virtual environment to start off with*
+
 To run the virtual environment: 
 FOR MAC (what I used)- 
 ```
@@ -24,6 +26,10 @@ venv\Scripts\activate.bat
 To install necessary dependencies, run the following in the terminal: 
 ```
 pip install -r requirements.txt
+```
+*Note: I run into a warning that pip will need to be upgraded. This was easy to resolve by running the following in the terminal:* 
+```
+pip install --upgrade pip 
 ```
 
 To run the unit tests, enter the following in the terminal: 
