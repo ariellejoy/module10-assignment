@@ -9,19 +9,18 @@ from datetime import timedelta
 
 def test_password_hashing(db_session, fake_user_data):
     original_password = "TestPass123"  # Use known password for test
-    hashed = User.hash_password(original_password)
     
     user = User(
         first_name=fake_user_data['first_name'],
         last_name=fake_user_data['last_name'],
         email=fake_user_data['email'],
         username=fake_user_data['username'],
-        password=hashed
+        password_hash=User.hash_password(original_password)
     )
     
     assert user.verify_password(original_password) is True
     assert user.verify_password("WrongPass123") is False
-    assert hashed != original_password
+    assert hash != original_password
 
 def test_user_registration(db_session, fake_user_data):
     fake_user_data['password'] = "TestPass123"

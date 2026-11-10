@@ -63,13 +63,13 @@ def test_session_handling(db_session):
     logger.info(f"Initial user count before test_session_handling: {initial_count}")
     assert initial_count == 0, f"Expected 0 users before test, found {initial_count}"
     
-    user1 = User(
-        first_name="Test",
-        last_name="User",
-        email="test1@example.com",
-        username="testuser1",
-        password="password123"
-    )
+    user1 = create_test_user({
+    "first_name": "Test",
+    "last_name": "User",
+    "email": "test1@example.com",
+    "username": "testuser1",
+    "password": "Password123"
+})
     db_session.add(user1)
     db_session.commit()
     logger.info(f"Added user1: {user1.email}")
@@ -79,15 +79,16 @@ def test_session_handling(db_session):
     assert current_count == 1, f"Expected 1 user after adding user1, found {current_count}"
     
     try:
-        user2 = User(
-            first_name="Test",
-            last_name="User",
-            email="test1@example.com",  # Duplicate
-            username="testuser2",
-            password="password456"
-        )
+        user2 = create_test_user({
+            "first_name": "Test",
+            "last_name": "User",
+            "email": "test1@example.com",  # Duplicate
+            "username": "testuser2",
+            "password": "password456"
+        })
         db_session.add(user2)
         db_session.commit()
+
     except IntegrityError:
         db_session.rollback()
         logger.info("IntegrityError caught and rolled back for user2.")
@@ -97,13 +98,13 @@ def test_session_handling(db_session):
     assert found_user1.username == "testuser1"
     logger.info(f"Found user1 after rollback: {found_user1.email}")
     
-    user3 = User(
-        first_name="Test",
-        last_name="User",
-        email="test3@example.com",
-        username="testuser3",
-        password="password789"
-    )
+    user3 = create_test_user({
+        "first_name": "Test",
+        "last_name": "User",
+        "email": "test3@example.com",
+        "username": "testuser3",
+        "password": "password789"
+    })
     db_session.add(user3)
     db_session.commit()
     logger.info(f"Added user3: {user3.email}")
@@ -117,42 +118,66 @@ def test_session_handling(db_session):
     assert "test1@example.com" in emails, "User1 must remain"
     assert "test3@example.com" in emails, "User3 must exist"
 
-
-
 # ======================================================================================
 # User Creation Tests
 # ======================================================================================
+
+# helper function
+def create_test_user(user_data=None):
+    user_data = user_data or create_fake_user()
+    return User(
+        first_name=user_data["first_name"],
+        last_name=user_data["last_name"],
+        email=user_data["email"],
+        username=user_data["username"],
+        password_hash=User.hash_password(user_data["password"])
+    )
 
 def test_create_user_with_faker(db_session):
     """
     Create a single user using Faker-generated data and verify it was saved.
     """
     user_data = create_fake_user()
+    # create user and hash password
+    user = create_test_user(user_data)
     logger.info(f"Creating user with data: {user_data}")
-    
-    user = User(**user_data)
+
     db_session.add(user)
     db_session.commit()
-    db_session.refresh(user)  # Refresh populates fields like user.id
-    
+    db_session.refresh(user)
+
+    # verifying user was saved
     assert user.id is not None
     assert user.email == user_data["email"]
+    # verifying password was hashed
+    assert user.password_hash != user_data["password"]
+    # verifying original password matches stored hash
+    assert user.verify_password(user_data["password"])
     logger.info(f"Successfully created user with ID: {user.id}")
-
 
 def test_create_multiple_users(db_session):
     """
-    Create multiple users in a loop and verify they are all saved.
+    Create multiple users using Faker-generated data and verify they are saved.
     """
     users = []
+
     for _ in range(3):
         user_data = create_fake_user()
-        user = User(**user_data)
+
+        # hash password and create SQLAlchemy User
+        user = create_test_user(user_data)
+
         users.append(user)
         db_session.add(user)
-    
+
     db_session.commit()
+
+    # verifying all users were created
     assert len(users) == 3
+    # verifying all users have database IDs
+    assert all(user.id is not None for user in users)
+    # verifying passwords were hashed
+    assert all(user.password_hash for user in users)
     logger.info(f"Successfully created {len(users)} users")
 
 # ======================================================================================
@@ -250,37 +275,48 @@ def test_unique_email_constraint(db_session):
     """
     Create two users with the same email and expect an IntegrityError.
     """
+    # Create first user
     first_user_data = create_fake_user()
-    first_user = User(**first_user_data)
+    first_user = create_test_user(first_user_data)
+
     db_session.add(first_user)
     db_session.commit()
-    
+
+    # Create second user with duplicate email
     second_user_data = create_fake_user()
-    second_user_data["email"] = first_user_data["email"]  # Force a duplicate email
-    second_user = User(**second_user_data)
+    second_user_data["email"] = first_user_data["email"]
+
+    second_user = create_test_user(second_user_data)
     db_session.add(second_user)
-    
+
+    # Verify database rejects duplicate email
     with pytest.raises(IntegrityError):
         db_session.commit()
-    db_session.rollback()
 
+    db_session.rollback()
 
 def test_unique_username_constraint(db_session):
     """
     Create two users with the same username and expect an IntegrityError.
     """
+    # Create first user
     first_user_data = create_fake_user()
-    first_user = User(**first_user_data)
+    first_user = create_test_user(first_user_data)
+
     db_session.add(first_user)
     db_session.commit()
-    
+
+    # Create second user with duplicate username
     second_user_data = create_fake_user()
-    second_user_data["username"] = first_user_data["username"]  # Force a duplicate username
-    second_user = User(**second_user_data)
+    second_user_data["username"] = first_user_data["username"]
+
+    second_user = create_test_user(second_user_data)
     db_session.add(second_user)
-    
+
+    # Verify database rejects duplicate username
     with pytest.raises(IntegrityError):
         db_session.commit()
+
     db_session.rollback()
 
 # ======================================================================================
@@ -289,41 +325,52 @@ def test_unique_username_constraint(db_session):
 
 def test_user_persistence_after_constraint(db_session):
     """
-    - Create and commit a valid user
-    - Attempt to create a duplicate user (same email) -> fails
-    - Confirm the original user still exists
+    - Create and commit a valid user.
+    - Attempt to create a duplicate user (same email).
+    - Confirm the original user still exists.
     """
+
     initial_user_data = {
         "first_name": "First",
         "last_name": "User",
         "email": "first@example.com",
         "username": "firstuser",
-        "password": "password123"
+        "password": "Password123"
     }
-    initial_user = User(**initial_user_data)
+
+    initial_user = create_test_user(initial_user_data)
+
     db_session.add(initial_user)
     db_session.commit()
+
     saved_id = initial_user.id
-    
-    try:
-        duplicate_user = User(
-            first_name="Second",
-            last_name="User",
-            email="first@example.com",  # Duplicate
-            username="seconduser",
-            password="password456"
-        )
-        db_session.add(duplicate_user)
+
+    # Attempt to create duplicate email
+    duplicate_user_data = {
+        "first_name": "Second",
+        "last_name": "User",
+        "email": "first@example.com",
+        "username": "seconduser",
+        "password": "Password456"
+    }
+
+    duplicate_user = create_test_user(duplicate_user_data)
+
+    db_session.add(duplicate_user)
+
+    with pytest.raises(IntegrityError):
         db_session.commit()
-        assert False, "Should have raised IntegrityError"
-    except IntegrityError:
-        db_session.rollback()
-    
+
+    db_session.rollback()
+
+    # Verify original user still exists
     found_user = db_session.query(User).filter_by(id=saved_id).first()
-    assert found_user is not None, "Original user should exist"
-    assert found_user.id == saved_id, "Should find original user by ID"
-    assert found_user.email == "first@example.com", "Email should be unchanged"
-    assert found_user.username == "firstuser", "Username should be unchanged"
+
+    assert found_user is not None
+    assert found_user.id == saved_id
+    assert found_user.email == "first@example.com"
+    assert found_user.username == "firstuser"
+    assert found_user.verify_password("Password123")
 
 # ======================================================================================
 # Error Handling Test

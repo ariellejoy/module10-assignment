@@ -100,7 +100,7 @@ def test_user_read_valid():
         last_name="Doe",
         email="john.doe@example.com",
         username="johndoe",
-        password="hashed_password",
+        password_hash=User.hash_password("hashed_password"),
         is_active=True,
         is_verified=False,
         last_login=None,
@@ -108,6 +108,7 @@ def test_user_read_valid():
         updated_at=datetime.now(),
     )
     user_read = UserRead.model_validate(user)
+    
     assert user_read.username == "johndoe"
     assert user_read.first_name == "John"
     assert user_read.last_name == "Doe"
@@ -127,7 +128,7 @@ def test_user_read_invalid_email():
         "last_name": "Doe",
         "email": "invalid-email",
         "username": "johndoe",
-        "password": "hashed_password",
+        "password_hash": User.hash_password("hashed_password"),
         "is_active": True,
         "is_verified": False,
         "last_login": None,
@@ -156,7 +157,7 @@ def test_user_read_invalid_id():
         "last_name": "Doe",
         "email": "john.doe@example.com",
         "username": "johndoe",
-        "password": "hashed_password",
+        "password_hash": User.hash_password("hashed_password"),
         "is_active": True,
         "is_verified": False,
         "last_login": None,
@@ -174,7 +175,7 @@ def test_user_read_invalid_username():
         "last_name": "Doe",
         "email": "john.doe@example.com",
         "username": "jd",
-        "password": "hashed_password",
+        "password_hash": User.hash_password("hashed_password"),
         "is_active": True,
         "is_verified": False,
         "last_login": None,
@@ -229,7 +230,7 @@ def test_user_read_from_sqlalchemy_model():
         last_name="Smith",
         email="jane@example.com",
         username="janesmith",
-        password="hashed_password",
+        password_hash=User.hash_password("hashed_password"),
         is_active=True,
         is_verified=True,
         last_login=None,

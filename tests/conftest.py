@@ -137,28 +137,25 @@ def setup_test_database(request):
         logger.info("Dropped test database tables.")
 
 @pytest.fixture
-def db_session(request) -> Generator[Session, None, None]:
+def db_session() -> Generator[Session, None, None]:
     """
-    Provide a test-scoped database session.
-    By default, truncates all tables after each test to ensure isolation,
-    unless --preserve-db is passed.
+    Provide an isolated database session for each test.
+    All database changes are rolled back after the test,
+    regardless of whether it passes or fails.
     """
-    session = TestingSessionLocal()
+    connection = test_engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(
+        bind=connection,
+        join_transaction_mode="create_savepoint"
+    )
     try:
         yield session
     finally:
-        logger.info("db_session teardown: about to truncate tables.")
-        preserve_db = request.config.getoption("--preserve-db")
-        if preserve_db:
-            logger.info("Skipping table truncation due to --preserve-db flag.")
-        else:
-            logger.info("Truncating all tables now.")
-            for table in reversed(Base.metadata.sorted_tables):
-                logger.info(f"Truncating table: {table}")
-                session.execute(table.delete())
-            session.commit()
         session.close()
-        logger.info("db_session teardown: done.")
+        if transaction.is_active:
+            transaction.rollback()
+        connection.close()
 
 # ======================================================================================
 # Test Data Fixtures
@@ -174,22 +171,24 @@ def test_user(db_session: Session) -> User:
     Create and return a single test user.
     """
     user_data = create_fake_user()
-    user = User(**user_data)
+    user = User(
+        first_name=user_data["first_name"],
+        last_name=user_data["last_name"],
+        email=user_data["email"],
+        username=user_data["username"],
+        password_hash=User.hash_password(user_data["password"])
+    )
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
+
     logger.info(f"Created test user with ID: {user.id}")
     return user
 
 @pytest.fixture
 def seed_users(db_session: Session, request) -> List[User]:
     """
-    Create multiple test users in the database.
-
-    Usage:
-        @pytest.mark.parametrize("seed_users", [10], indirect=True)
-        def test_many_users(seed_users):
-            # test logic
+    Create multiple test users with hashed passwords.
     """
     try:
         num_users = request.param
@@ -197,13 +196,22 @@ def seed_users(db_session: Session, request) -> List[User]:
         num_users = 5
 
     users = []
+
     for _ in range(num_users):
         user_data = create_fake_user()
-        user = User(**user_data)
+
+        user = User(
+            first_name=user_data["first_name"],
+            last_name=user_data["last_name"],
+            email=user_data["email"],
+            username=user_data["username"],
+            password_hash=User.hash_password(user_data["password"])
+        )
+
         users.append(user)
         db_session.add(user)
 
-    db_session.commit()
+    db_session.flush()
     logger.info(f"Seeded {len(users)} users into the test database.")
     return users
 

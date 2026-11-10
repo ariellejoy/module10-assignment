@@ -46,7 +46,7 @@ class User(Base): # user class represents a database table
     last_name = Column(String(50), nullable=False)
     email = Column(String(120), unique=True, nullable=False)
     username = Column(String(50), unique=True, nullable=False)
-    password = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
     last_login = Column(DateTime, nullable=True)
@@ -67,7 +67,7 @@ class User(Base): # user class represents a database table
     # used during login - accesses a particular user's stored hash
     # compared entered password against hashed password in db
     def verify_password(self, plain_password: str) -> bool:
-        return pwd_context.verify(plain_password, self.password)
+        return pwd_context.verify(plain_password, self.password_hash)
 
     # creates a JWT access token with an expiration time
     # expiration is optional, there is a default included
@@ -124,7 +124,7 @@ class User(Base): # user class represents a database table
                 last_name=user_create.last_name,
                 email=user_create.email,
                 username=user_create.username,
-                password=cls.hash_password(user_create.password),
+                password_hash=cls.hash_password(user_create.password),
                 is_active=True,
                 is_verified=False
             )
