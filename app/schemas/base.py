@@ -44,7 +44,7 @@ class UserRead(UserBase):
     id: UUID
     is_active: bool
     is_verified: bool
-    last_login: Optional[datetime]
+    last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     
