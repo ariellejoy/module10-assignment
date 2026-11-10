@@ -14,16 +14,23 @@ class UserBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+
 class PasswordMixin(BaseModel):
     """Mixin for password validation"""
-    password: str = Field(min_length=6, max_length=128, example="SecurePass123")
 
+    password: str = Field(
+        min_length=6,
+        max_length=128,
+        example="SecurePass123"
+    )
     @model_validator(mode="before")
     @classmethod
     def validate_password(cls, values: dict) -> dict:
+        if not isinstance(values, dict):
+            raise ValueError("Invalid input")
         password = values.get("password")
         if not password:
-            raise ValidationError("Password is required", model=cls) # pragma: no cover
+            raise ValueError("Password is required")
         if len(password) < 6:
             raise ValueError("Password must be at least 6 characters long")
         if not any(char.isupper() for char in password):
@@ -33,7 +40,6 @@ class PasswordMixin(BaseModel):
         if not any(char.isdigit() for char in password):
             raise ValueError("Password must contain at least one digit")
         return values
-
 
 class UserCreate(UserBase, PasswordMixin):
     """Schema for user creation"""
