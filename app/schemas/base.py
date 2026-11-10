@@ -39,7 +39,15 @@ class UserCreate(UserBase, PasswordMixin):
     """Schema for user creation"""
     pass
 
-
+class UserRead(UserBase):
+    """Schema for reading user data"""
+    id: UUID
+    is_active: bool
+    is_verified: bool
+    last_login: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+    
 class UserLogin(PasswordMixin):
     """Schema for user login"""
     username: str = Field(
