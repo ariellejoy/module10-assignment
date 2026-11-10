@@ -78,13 +78,16 @@ class User(Base):
                 raise ValueError("Password must be at least 6 characters long")
             
             # Check if email/username exists
+            # cls goes to the user class, knows that it has been defined
             existing_user = db.query(cls).filter(
                 (cls.email == user_data.get('email')) |
                 (cls.username == user_data.get('username'))
             ).first()
             
             if existing_user:
-                raise ValueError("Username or email already exists")
+                raise ValueError("Username or email already exists") 
+                # thrown when anything goes wrong essentially, cause FastAPI to throw a request
+                # what gets shown in the user interface (FE validation to come in a later unit)
 
             # Validate using Pydantic schema
             user_create = UserCreate.model_validate(user_data)
