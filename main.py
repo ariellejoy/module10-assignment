@@ -1,4 +1,5 @@
 # main.py
+# these are the current routes that we have - to be updated as we work more with the database
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
