@@ -145,7 +145,7 @@ class User(Base): # user class represents a database table
     def authenticate(cls, db, username: str, password: str) -> Optional[Dict[str, Any]]:
         # finding the user in the database by email or username
         user = db.query(cls).filter(
-            (cls.username == username) | (cls.email == email)
+            (cls.username == username) | (cls.email == username)
         ).first() # returns first matching user
 
         if not user or not user.verify_password(password):
