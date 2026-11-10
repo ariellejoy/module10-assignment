@@ -104,7 +104,7 @@ class User(Base):
             )
             
             db.add(new_user)
-            db.flush()
+            db.flush() # reset connection to add user 
             return new_user
             
         except ValidationError as e:
@@ -112,9 +112,9 @@ class User(Base):
         except ValueError as e:
             raise e
 
-    @classmethod
+    @classmethod # user login, prepare token for user response
     def authenticate(cls, db, username: str, password: str) -> Optional[Dict[str, Any]]:
-        """Authenticate user and return token with user data."""
+        """Authenticate user and return token with user data. Dealing with data before it gets exposed to the user."""
         user = db.query(cls).filter(
             (cls.username == username) | (cls.email == username)
         ).first()
